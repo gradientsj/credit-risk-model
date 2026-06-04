@@ -78,18 +78,110 @@ class FTTransformer(nn.Module):
         return self.head(h[:, 0]).squeeze(-1)  # logit from [CLS]
 
 
+class _FlatEncoder(nn.Module):
+    """Shared front-end for flat (non-token) architectures: numeric features
+    pass through; categorical features get small embeddings, concatenated."""
+
+    def __init__(self, n_numeric: int, cat_cardinalities: list[int], d_embed: int = 8):
+        super().__init__()
+        self.embeddings = nn.ModuleList(
+            [nn.Embedding(card, d_embed) for card in cat_cardinalities]
+        )
+        self.out_dim = n_numeric + d_embed * len(cat_cardinalities)
+
+    def forward(self, x_num: torch.Tensor, x_cat: torch.Tensor) -> torch.Tensor:
+        parts = [x_num]
+        parts += [emb(x_cat[:, i]) for i, emb in enumerate(self.embeddings)]
+        return torch.cat(parts, dim=1)
+
+
+class MLPResNet(nn.Module):
+    """ResNet for tabular data (Gorishniy et al. 2021): pre-norm residual MLP
+    blocks over a flat feature vector."""
+
+    def __init__(self, n_numeric: int, cat_cardinalities: list[int],
+                 d: int = 256, n_blocks: int = 4, dropout: float = 0.15):
+        super().__init__()
+        self.encoder = _FlatEncoder(n_numeric, cat_cardinalities)
+        self.input_proj = nn.Linear(self.encoder.out_dim, d)
+        self.blocks = nn.ModuleList([
+            nn.Sequential(
+                nn.LayerNorm(d), nn.Linear(d, d * 2), nn.ReLU(),
+                nn.Dropout(dropout), nn.Linear(d * 2, d), nn.Dropout(dropout),
+            )
+            for _ in range(n_blocks)
+        ])
+        self.head = nn.Sequential(nn.LayerNorm(d), nn.ReLU(), nn.Linear(d, 1))
+
+    def forward(self, x_num: torch.Tensor, x_cat: torch.Tensor) -> torch.Tensor:
+        h = self.input_proj(self.encoder(x_num, x_cat))
+        for block in self.blocks:
+            h = h + block(h)
+        return self.head(h).squeeze(-1)  # (B,) logits
+
+
+class BatchEnsembleLinear(nn.Module):
+    """Shared weight matrix with k rank-1 multiplicative adapters and
+    per-member biases (Wen et al. 2020) — the building block of TabM."""
+
+    def __init__(self, in_features: int, out_features: int, k: int):
+        super().__init__()
+        self.weight = nn.Parameter(torch.empty(in_features, out_features))
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        # random-sign init decorrelates ensemble members (TabM, Gorishniy et al. 2024)
+        self.r = nn.Parameter(torch.empty(k, in_features).bernoulli_(0.5) * 2 - 1)
+        self.s = nn.Parameter(torch.ones(k, out_features))
+        self.bias = nn.Parameter(torch.zeros(k, out_features))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # x: (B, k, in)
+        return ((x * self.r) @ self.weight) * self.s + self.bias
+
+
+class TabM(nn.Module):
+    """TabM (Gorishniy et al., NeurIPS 2024): an MLP whose layers are
+    BatchEnsemble-shared across k implicit members. Trains k models for ~the
+    cost of one; predicts by averaging member probabilities. Returns logits of
+    shape (B, k); the training wrapper averages member losses."""
+
+    def __init__(self, n_numeric: int, cat_cardinalities: list[int],
+                 d: int = 256, n_layers: int = 3, k: int = 8, dropout: float = 0.1):
+        super().__init__()
+        self.k = k
+        self.encoder = _FlatEncoder(n_numeric, cat_cardinalities)
+        dims = [self.encoder.out_dim] + [d] * n_layers
+        self.layers = nn.ModuleList(
+            [BatchEnsembleLinear(dims[i], dims[i + 1], k) for i in range(n_layers)]
+        )
+        self.dropout = nn.Dropout(dropout)
+        self.head = BatchEnsembleLinear(d, 1, k)
+
+    def forward(self, x_num: torch.Tensor, x_cat: torch.Tensor) -> torch.Tensor:
+        h = self.encoder(x_num, x_cat).unsqueeze(1).expand(-1, self.k, -1)
+        for layer in self.layers:
+            h = self.dropout(torch.relu(layer(h)))
+        return self.head(h).squeeze(-1)  # (B, k) logits
+
+
+ARCHITECTURES = {
+    "ft_transformer": FTTransformer,
+    "mlp_resnet": MLPResNet,
+    "tabm": TabM,
+}
+
+
 class TabularNNClassifier:
     """sklearn-style wrapper: standardizes numerics, encodes categoricals,
-    trains FTTransformer with early stopping on validation AUC."""
+    trains the chosen architecture with early stopping on validation AUC.
+
+    For ``arch="tabm"`` the model emits (B, k) member logits: the loss averages
+    over members and prediction averages member probabilities."""
 
     def __init__(
         self,
         numeric: list[str],
         categorical: list[str],
-        d_token: int = 64,
-        n_layers: int = 3,
-        n_heads: int = 8,
-        dropout: float = 0.1,
+        arch: str = "ft_transformer",
+        arch_kwargs: dict | None = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
         batch_size: int = 4096,
@@ -98,8 +190,11 @@ class TabularNNClassifier:
         seed: int = 42,
         device: str | None = None,
     ):
+        if arch not in ARCHITECTURES:
+            raise ValueError(f"arch must be one of {sorted(ARCHITECTURES)}")
         self.numeric, self.categorical = numeric, categorical
-        self.hparams = dict(d_token=d_token, n_layers=n_layers, n_heads=n_heads, dropout=dropout)
+        self.arch = arch
+        self.hparams = arch_kwargs if arch_kwargs is not None else {}
         self.lr, self.weight_decay = lr, weight_decay
         self.batch_size, self.max_epochs, self.patience = batch_size, max_epochs, patience
         self.seed = seed
@@ -137,7 +232,9 @@ class TabularNNClassifier:
         torch.manual_seed(self.seed)
         self._fit_encoders(X_train)
         cards = [len(m) + 1 for m in self.cat_maps_]
-        self.model_ = FTTransformer(len(self.numeric), cards, **self.hparams).to(self.device)
+        self.model_ = ARCHITECTURES[self.arch](
+            len(self.numeric), cards, **self.hparams
+        ).to(self.device)
 
         xn, xc = self._encode(X_train)
         yt = torch.from_numpy(np.asarray(y_train, dtype=np.float32))
@@ -158,7 +255,10 @@ class TabularNNClassifier:
             for bn, bc, by in loader:
                 bn, bc, by = bn.to(self.device), bc.to(self.device), by.to(self.device)
                 opt.zero_grad()
-                loss = loss_fn(self.model_(bn, bc), by)
+                out = self.model_(bn, bc)
+                if out.ndim == 2:  # TabM: (B, k) member logits — average member losses
+                    by = by.unsqueeze(1).expand_as(out)
+                loss = loss_fn(out, by)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model_.parameters(), 1.0)
                 opt.step()
@@ -189,5 +289,9 @@ class TabularNNClassifier:
         for i in range(0, len(xn), 16384):
             bn = xn[i : i + 16384].to(self.device)
             bc = xc[i : i + 16384].to(self.device)
-            out.append(torch.sigmoid(self.model_(bn, bc)).cpu().numpy())
+            logits = self.model_(bn, bc)
+            probs = torch.sigmoid(logits)
+            if probs.ndim == 2:  # TabM: average member probabilities
+                probs = probs.mean(dim=1)
+            out.append(probs.cpu().numpy())
         return np.concatenate(out)

@@ -202,6 +202,26 @@ code("""display(Image(str(ROOT/"reports/figures/gini_comparison.png"), width=560
 display(Image(str(ROOT/"reports/figures/adverse_impact_ratio.png"), width=560))
 display(Image(str(ROOT/"reports/figures/nn_training.png"), width=480))"""),
 
+md("""## 7. Extended model zoo
+
+Beyond the core four, `scripts/run_model_zoo.py` benchmarks twelve variants under the approved feature policy — CatBoost, random forest, a **monotone-constrained** LightGBM (the regulator-friendly option), an **EBM** glass-box GAM, an **augmented scorecard** with GBM-distilled SHAP-interaction crosses, three from-scratch deep architectures (FT-Transformer, MLP-ResNet, **TabM**), and a stacked ensemble — with uniform Gini/KS/Brier/**ECE**/latency metrics plus an isotonic calibration layer for the champion.
+
+Two findings worth pausing on:
+
+- The **distilled cross terms recover the simulator's true regime interactions** (utilization×credit-lines = the thin-file effect; DTI×utilization = the distressed-revolver effect) — the SHAP-interaction extraction found the actual data-generating structure.
+- The **EBM keeps most of the black-box lift while staying fully plottable**, confirming the portfolio's risk is pairwise-interaction-driven — and offering a credible glass-box deployment path if tree ensembles were ever disallowed."""),
+
+code("""zoo = json.loads((ROOT/"reports/model_zoo/metrics.json").read_text())
+zt = pd.DataFrame(zoo["models"]).set_index("model")
+print("feature policy:", zoo["feature_policy"])
+print("distilled SHAP-interaction crosses:", ", ".join("×".join(p) for p in zoo["shap_distilled_pairs"]))
+zt[["family","gini","gini_ci_lo","gini_ci_hi","ks","brier","ece","latency_ms_per_1k","gini_lift_vs_incumbent"]]"""),
+
+code("""display(Image(str(ROOT/"reports/model_zoo/figures/model_zoo_gini.png"), width=640))
+display(Image(str(ROOT/"reports/model_zoo/figures/gini_vs_latency.png"), width=560))
+display(Image(str(ROOT/"reports/model_zoo/figures/ebm_terms.png"), width=580))
+display(Image(str(ROOT/"reports/model_zoo/figures/calibration_isotonic.png"), width=500))"""),
+
 md("""### Where to go next
 
 - **Governance docs**: [`docs/MODEL_CARD.md`](../docs/MODEL_CARD.md) · [`docs/VALIDATION_REPORT.md`](../docs/VALIDATION_REPORT.md) (SR 11-7 structure) · [`docs/MONITORING_PLAN.md`](../docs/MONITORING_PLAN.md)

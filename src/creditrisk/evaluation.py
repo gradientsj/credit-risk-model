@@ -45,6 +45,20 @@ def bootstrap_gini_ci(y_true, y_pred, n_boot: int = 200, seed: int = 42,
     return gini(y_true, y_pred), float(lo), float(hi)
 
 
+def ece(y_true, y_pred, n_bins: int = 10) -> float:
+    """Expected calibration error over quantile bins of predicted PD."""
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    edges = np.quantile(y_pred, np.linspace(0, 1, n_bins + 1))
+    edges[0], edges[-1] = -np.inf, np.inf
+    bins = np.digitize(y_pred, edges[1:-1])
+    total = 0.0
+    for b in range(n_bins):
+        mask = bins == b
+        if mask.any():
+            total += mask.mean() * abs(y_pred[mask].mean() - y_true[mask].mean())
+    return float(total)
+
+
 def evaluate_model(y_true, y_pred, name: str = "") -> dict:
     return {
         "model": name,

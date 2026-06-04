@@ -26,6 +26,22 @@ A companion pipeline runs the same comparison on **real data** — Home Credit D
 2. **LightGBM** / **XGBoost** challengers with early stopping.
 3. **FT-Transformer** implemented from scratch in PyTorch (feature tokenization + [CLS] + pre-norm transformer encoder, per Gorishniy et al. 2021), trained on GPU — included to *test* whether deep learning earns its complexity on tabular credit data (finding: it ties but does not beat the GBMs, which is itself a governance-relevant result).
 
+### Extended model zoo (`scripts/run_model_zoo.py`)
+
+Twelve variants benchmarked under the *approved feature policy* (mitigated set), each answering a specific question — results in `reports/model_zoo/RESULTS.md`:
+
+| Model | Question it answers |
+|---|---|
+| CatBoost, Random Forest | GBM triad complete; is the lift boosting-specific or trees-generally? |
+| **Monotone LightGBM** | the *price of monotonicity* — regulator-friendly directional constraints on 11/16 features (regime-dependent features deliberately left free) |
+| **EBM** (InterpretML) | can a **glass-box** GAM with learned pairwise interactions recover the black-box lift? (Largely yes — evidence the risk is pairwise-interaction-driven) |
+| **Augmented scorecard** | distillation: top SHAP-*interaction* pairs from the GBM become cross terms in the WOE scorecard — and they recover exactly the simulator's true regime interactions |
+| MLP-ResNet, **TabM** (both from scratch) | modern tabular DL incl. the NeurIPS-2024 BatchEnsemble MLP |
+| Stacked ensemble | the accuracy ceiling when families blend |
+| Isotonic calibration | champion ECE/Brier before/after a monotone calibration layer |
+
+All with uniform metrics (Gini + bootstrap CI, KS, Brier, **ECE**, **scoring latency**) and two extra figures: Gini-by-family and the accuracy-vs-latency frontier.
+
 ## Repository layout
 
 ```

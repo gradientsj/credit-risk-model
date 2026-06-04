@@ -172,3 +172,85 @@ def plot_nn_history(history: list[dict], path: Path):
     ax1.legend(lines, [l.get_label() for l in lines], fontsize=8.5, loc="center right")
     ax1.set_title("FT-Transformer training")
     fig.savefig(path); plt.close(fig)
+
+
+# ---- model-zoo figures ---------------------------------------------------------
+
+FAMILY_COLORS = {
+    "scorecard (glass box)": "#CC78BC",
+    "GAM (glass box)": "#56B4E9",
+    "GBM": "#0173B2",
+    "bagging": "#949494",
+    "deep": "#029E73",
+    "ensemble": "#DE8F05",
+}
+
+
+def plot_model_zoo(zoo: pd.DataFrame, path: Path, incumbent_name: str = "incumbent"):
+    """Horizontal Gini bars with bootstrap CIs, colored by model family."""
+    z = zoo.sort_values("gini")
+    fig, ax = plt.subplots(figsize=(7.2, 0.42 * len(z) + 1.6))
+    colors = [FAMILY_COLORS.get(f, "#888888") for f in z["family"]]
+    err = np.array([z["gini"] - z["gini_ci_lo"], z["gini_ci_hi"] - z["gini"]])
+    ax.barh(z.index, z["gini"], xerr=err, color=colors, capsize=3, height=0.62)
+    for i, (name, row) in enumerate(z.iterrows()):
+        ax.text(row["gini_ci_hi"] + 0.004, i, f"{row['gini']:.3f}",
+                va="center", fontsize=8.5)
+    if incumbent_name in zoo.index:
+        ax.axvline(zoo.loc[incumbent_name, "gini"], color="#888888", ls="--",
+                   lw=1.0, alpha=0.8)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=c) for f, c in FAMILY_COLORS.items()
+               if f in set(z["family"])]
+    labels = [f for f in FAMILY_COLORS if f in set(z["family"])]
+    ax.legend(handles, labels, fontsize=8, loc="lower right")
+    ax.set(xlabel="Gini (95% bootstrap CI)",
+           title="Model zoo — discrimination by family (mitigated feature set)")
+    ax.set_xlim(left=max(0.0, z["gini_ci_lo"].min() - 0.05))
+    fig.savefig(path); plt.close(fig)
+
+
+def plot_gini_vs_latency(zoo: pd.DataFrame, path: Path):
+    """Accuracy vs scoring-cost frontier (log-x latency per 1K rows)."""
+    fig, ax = plt.subplots(figsize=(6.6, 4.6))
+    for name, row in zoo.iterrows():
+        c = FAMILY_COLORS.get(row["family"], "#888888")
+        ax.scatter(row["latency_ms_per_1k"], row["gini"], s=46, color=c, zorder=3)
+        ax.annotate(name, (row["latency_ms_per_1k"], row["gini"]),
+                    textcoords="offset points", xytext=(6, 4), fontsize=7.5)
+    ax.set_xscale("log")
+    ax.set(xlabel="Scoring latency (ms per 1,000 rows, log scale)",
+           ylabel="Gini", title="Accuracy vs scoring cost")
+    fig.savefig(path); plt.close(fig)
+
+
+def plot_isotonic_calibration(y_true, p_raw, p_cal, metrics: dict, path: Path):
+    from sklearn.calibration import calibration_curve
+    fig, ax = plt.subplots(figsize=(5.4, 4.5))
+    for p, label, color in [(p_raw, "raw champion", "#0173B2"),
+                            (p_cal, "isotonic-calibrated", "#DE8F05")]:
+        frac, mean_p = calibration_curve(y_true, p, n_bins=10, strategy="quantile")
+        ax.plot(mean_p, frac, "o-", ms=3.5, lw=1.4, color=color, label=label)
+    lim = ax.get_xlim()[1]
+    ax.plot([0, lim], [0, lim], "k--", lw=0.8, alpha=0.5)
+    ax.set(xlabel="Mean predicted PD (decile)", ylabel="Realized default rate",
+           title=f"Isotonic calibration — ECE {metrics['ece_raw']:.4f} → "
+                 f"{metrics['ece_cal']:.4f}, Brier {metrics['brier_raw']:.4f} → "
+                 f"{metrics['brier_cal']:.4f}")
+    ax.legend(fontsize=8.5)
+    fig.savefig(path); plt.close(fig)
+
+
+def plot_ebm_terms(term_names, term_importances, path: Path, top: int = 14):
+    """EBM glass-box terms; pairwise interaction terms highlighted."""
+    s = pd.Series(term_importances, index=term_names).sort_values().tail(top)
+    is_pair = [" & " in n for n in s.index]
+    colors = ["#DE8F05" if p else "#56B4E9" for p in is_pair]
+    fig, ax = plt.subplots(figsize=(6.8, 0.36 * len(s) + 1.4))
+    ax.barh(s.index, s.values, color=colors, height=0.62)
+    handles = [plt.Rectangle((0, 0), 1, 1, color="#56B4E9"),
+               plt.Rectangle((0, 0), 1, 1, color="#DE8F05")]
+    ax.legend(handles, ["main effect", "pairwise interaction"], fontsize=8, loc="lower right")
+    ax.set(xlabel="Mean |score contribution|",
+           title="EBM term importances — every term is a plottable shape function")
+    ax.tick_params(axis="y", labelsize=8)
+    fig.savefig(path); plt.close(fig)

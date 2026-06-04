@@ -1,0 +1,224 @@
+{
+  "n_rows": 800000,
+  "feature_policy": "mitigated (geo_risk_index excluded)",
+  "models": [
+    {
+      "model": "stacked_ensemble",
+      "auc": 0.844505273256357,
+      "gini": 0.6890105465127141,
+      "ks": 0.5597859027665606,
+      "brier": 0.05312313697571675,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6748,
+      "gini_ci_hi": 0.7039,
+      "ece": 0.00181,
+      "latency_ms_per_1k": 3.73,
+      "family": "ensemble",
+      "note": "logit-stack of lightgbm_champion, xgboost, catboost, tabm",
+      "gini_lift_vs_incumbent": 0.1028
+    },
+    {
+      "model": "catboost",
+      "auc": 0.8441624201198037,
+      "gini": 0.6883248402396074,
+      "ks": 0.558666905159561,
+      "brier": 0.05315792406826328,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6746,
+      "gini_ci_hi": 0.7026,
+      "ece": 0.00132,
+      "latency_ms_per_1k": 0.69,
+      "family": "GBM",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.1021
+    },
+    {
+      "model": "lightgbm_champion",
+      "auc": 0.8439440813457162,
+      "gini": 0.6878881626914324,
+      "ks": 0.5604717287650158,
+      "brier": 0.05321325928461344,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6731,
+      "gini_ci_hi": 0.7039,
+      "ece": 0.00221,
+      "latency_ms_per_1k": 1.12,
+      "family": "GBM",
+      "note": "deployed model (from run_pipeline)",
+      "gini_lift_vs_incumbent": 0.1016
+    },
+    {
+      "model": "xgboost",
+      "auc": 0.8434398212222106,
+      "gini": 0.6868796424444212,
+      "ks": 0.5589046945349602,
+      "brier": 0.05322363818725148,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6723,
+      "gini_ci_hi": 0.7016,
+      "ece": 0.00187,
+      "latency_ms_per_1k": 1.0,
+      "family": "GBM",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.1006
+    },
+    {
+      "model": "ft_transformer",
+      "auc": 0.8423266165209017,
+      "gini": 0.6846532330418034,
+      "ks": 0.5593254941709849,
+      "brier": 0.05325501599295867,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6701,
+      "gini_ci_hi": 0.6996,
+      "ece": 0.00247,
+      "latency_ms_per_1k": 7.99,
+      "family": "deep",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.0984
+    },
+    {
+      "model": "ebm",
+      "auc": 0.8422516009085574,
+      "gini": 0.6845032018171149,
+      "ks": 0.5590812300911181,
+      "brier": 0.05317766267381824,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.67,
+      "gini_ci_hi": 0.6983,
+      "ece": 0.00238,
+      "latency_ms_per_1k": 1.47,
+      "family": "GAM (glass box)",
+      "note": "15 learned pairwise interaction terms",
+      "gini_lift_vs_incumbent": 0.0983
+    },
+    {
+      "model": "random_forest",
+      "auc": 0.840448601790272,
+      "gini": 0.6808972035805441,
+      "ks": 0.5566793234583738,
+      "brier": 0.05368247265129312,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6684,
+      "gini_ci_hi": 0.6963,
+      "ece": 0.00552,
+      "latency_ms_per_1k": 1.84,
+      "family": "bagging",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.0947
+    },
+    {
+      "model": "tabm",
+      "auc": 0.8387776708563313,
+      "gini": 0.6775553417126625,
+      "ks": 0.5532708052973385,
+      "brier": 0.05387976661949851,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6642,
+      "gini_ci_hi": 0.693,
+      "ece": 0.00219,
+      "latency_ms_per_1k": 0.88,
+      "family": "deep",
+      "note": "BatchEnsemble MLP, k=8 members (Gorishniy 2024)",
+      "gini_lift_vs_incumbent": 0.0913
+    },
+    {
+      "model": "mlp_resnet",
+      "auc": 0.8368041751602531,
+      "gini": 0.6736083503205061,
+      "ks": 0.549176611589171,
+      "brier": 0.05457021560396463,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6601,
+      "gini_ci_hi": 0.6893,
+      "ece": 0.01344,
+      "latency_ms_per_1k": 0.55,
+      "family": "deep",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.0874
+    },
+    {
+      "model": "lightgbm_monotone",
+      "auc": 0.8174707862891912,
+      "gini": 0.6349415725783825,
+      "ks": 0.5367789669881211,
+      "brier": 0.05389373965784267,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6206,
+      "gini_ci_hi": 0.6512,
+      "ece": 0.00431,
+      "latency_ms_per_1k": 1.28,
+      "family": "GBM",
+      "note": "11 of 16 features constrained",
+      "gini_lift_vs_incumbent": 0.0487
+    },
+    {
+      "model": "scorecard_augmented",
+      "auc": 0.8120250335172173,
+      "gini": 0.6240500670344347,
+      "ks": 0.5215797079104536,
+      "brier": 0.05761567045518039,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.6109,
+      "gini_ci_hi": 0.6423,
+      "ece": 0.01466,
+      "latency_ms_per_1k": 0.62,
+      "family": "scorecard (glass box)",
+      "note": "incumbent + 6 GBM-distilled cross terms",
+      "gini_lift_vs_incumbent": 0.0378
+    },
+    {
+      "model": "incumbent",
+      "auc": 0.7931216565120394,
+      "gini": 0.5862433130240787,
+      "ks": 0.5055814654277132,
+      "brier": 0.05921010719655653,
+      "default_rate": 0.0801625,
+      "gini_ci_lo": 0.5687,
+      "gini_ci_hi": 0.6051,
+      "ece": 0.01843,
+      "latency_ms_per_1k": 0.4,
+      "family": "scorecard (glass box)",
+      "note": "",
+      "gini_lift_vs_incumbent": 0.0
+    }
+  ],
+  "shap_distilled_pairs": [
+    [
+      "revolving_utilization",
+      "num_credit_lines"
+    ],
+    [
+      "debt_to_income",
+      "revolving_utilization"
+    ],
+    [
+      "debt_to_income",
+      "savings_balance"
+    ],
+    [
+      "annual_income",
+      "debt_to_income"
+    ],
+    [
+      "revolving_utilization",
+      "savings_balance"
+    ],
+    [
+      "loan_to_income",
+      "savings_balance"
+    ]
+  ],
+  "isotonic_calibration": {
+    "brier_raw": 0.05321325928461344,
+    "brier_cal": 0.053259720521943305,
+    "ece_raw": 0.002214292411085024,
+    "ece_cal": 0.0023784087767504784
+  },
+  "stacking_bases": [
+    "lightgbm_champion",
+    "xgboost",
+    "catboost",
+    "tabm"
+  ]
+}
