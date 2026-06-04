@@ -1,0 +1,179 @@
+{
+  "n_applications": 800000,
+  "default_rate": 0.08025,
+  "champion": "lightgbm_mitigated",
+  "gini_lift_vs_incumbent": 0.1017,
+  "models": [
+    {
+      "model": "incumbent",
+      "auc": 0.7931,
+      "gini": 0.5862,
+      "ks": 0.5056,
+      "brier": 0.0592,
+      "default_rate": 0.0802,
+      "gini_ci_lo": 0.5764,
+      "gini_ci_hi": 0.5985,
+      "gini_lift_vs_incumbent": 0.0
+    },
+    {
+      "model": "lightgbm",
+      "auc": 0.8673,
+      "gini": 0.7346,
+      "ks": 0.5827,
+      "brier": 0.0515,
+      "default_rate": 0.0802,
+      "gini_ci_lo": 0.7279,
+      "gini_ci_hi": 0.7433,
+      "gini_lift_vs_incumbent": 0.1484
+    },
+    {
+      "model": "xgboost",
+      "auc": 0.8676,
+      "gini": 0.7352,
+      "ks": 0.5817,
+      "brier": 0.0515,
+      "default_rate": 0.0802,
+      "gini_ci_lo": 0.7284,
+      "gini_ci_hi": 0.7434,
+      "gini_lift_vs_incumbent": 0.149
+    },
+    {
+      "model": "ft_transformer",
+      "auc": 0.8673,
+      "gini": 0.7346,
+      "ks": 0.5818,
+      "brier": 0.0518,
+      "default_rate": 0.0802,
+      "gini_ci_lo": 0.7277,
+      "gini_ci_hi": 0.7423,
+      "gini_lift_vs_incumbent": 0.1484
+    },
+    {
+      "model": "lightgbm_mitigated",
+      "auc": 0.8439,
+      "gini": 0.6879,
+      "ks": 0.5605,
+      "brier": 0.0532,
+      "default_rate": 0.0802,
+      "gini_ci_lo": 0.6783,
+      "gini_ci_hi": 0.6986,
+      "gini_lift_vs_incumbent": 0.1017
+    }
+  ],
+  "business_impact": {
+    "approval_rate": 0.7,
+    "incumbent_annual_loss": 71577825.0,
+    "challenger_annual_loss": 57806375.0,
+    "annual_loss_reduction": 13771450.0,
+    "loss_reduction_pct": 0.19239827418617428,
+    "swap_in": 12956,
+    "swap_out": 12956,
+    "constant_risk_approval_rate": 0.7724985781160976,
+    "additional_approvals_annual": 57998,
+    "assumptions": {
+      "lgd": 0.55,
+      "annual_applications": 800000,
+      "loss_basis": "realized defaults x loan amount x LGD on approved book"
+    }
+  },
+  "fairness": {
+    "incumbent": [
+      {
+        "attribute": "gender",
+        "min_air": 0.9983666927234648,
+        "demographic_parity_diff": 0.0011442865031783267,
+        "equal_opportunity_diff": 0.0016949563074006857,
+        "fpr_diff": 0.005116583086880122,
+        "max_abs_calibration_gap": 0.0012175895395616365,
+        "passes_four_fifths": true,
+        "passes_equal_opportunity": true
+      },
+      {
+        "attribute": "age_band",
+        "min_air": 0.2217697475098448,
+        "demographic_parity_diff": 0.5848635512196481,
+        "equal_opportunity_diff": 0.45115427611094855,
+        "fpr_diff": 0.3258720930232558,
+        "max_abs_calibration_gap": 0.2515138308235747,
+        "passes_four_fifths": false,
+        "passes_equal_opportunity": false
+      },
+      {
+        "attribute": "group",
+        "min_air": 0.9344430800549597,
+        "demographic_parity_diff": 0.04634959353892043,
+        "equal_opportunity_diff": 0.049201196799459,
+        "fpr_diff": 0.019542072817734735,
+        "max_abs_calibration_gap": 0.012340926524919499,
+        "passes_four_fifths": true,
+        "passes_equal_opportunity": true
+      }
+    ],
+    "lightgbm": [
+      {
+        "attribute": "gender",
+        "min_air": 0.9977598241408357,
+        "demographic_parity_diff": 0.0015699510667238625,
+        "equal_opportunity_diff": 0.0017958749991091594,
+        "fpr_diff": 0.0009536667952509403,
+        "max_abs_calibration_gap": 0.0012508756256250503,
+        "passes_four_fifths": true,
+        "passes_equal_opportunity": true
+      },
+      {
+        "attribute": "age_band",
+        "min_air": 0.464562649819004,
+        "demographic_parity_diff": 0.3841874003356383,
+        "equal_opportunity_diff": 0.42335711659801784,
+        "fpr_diff": 0.21880819366852883,
+        "max_abs_calibration_gap": 0.2059418896392632,
+        "passes_four_fifths": false,
+        "passes_equal_opportunity": false
+      },
+      {
+        "attribute": "group",
+        "min_air": 0.7773200538694253,
+        "demographic_parity_diff": 0.16131099219368272,
+        "equal_opportunity_diff": 0.17078893520050664,
+        "fpr_diff": 0.058883354762155365,
+        "max_abs_calibration_gap": 0.03265065167444843,
+        "passes_four_fifths": false,
+        "passes_equal_opportunity": false
+      }
+    ],
+    "lightgbm_mitigated": [
+      {
+        "attribute": "gender",
+        "min_air": 0.9976527694579616,
+        "demographic_parity_diff": 0.001645068342643663,
+        "equal_opportunity_diff": 0.0020209921203190317,
+        "fpr_diff": 0.002602760276027599,
+        "max_abs_calibration_gap": 0.0010561907732197645,
+        "passes_four_fifths": true,
+        "passes_equal_opportunity": true
+      },
+      {
+        "attribute": "age_band",
+        "min_air": 0.46444095160476573,
+        "demographic_parity_diff": 0.38437541345477594,
+        "equal_opportunity_diff": 0.42180407691672855,
+        "fpr_diff": 0.20484171322160147,
+        "max_abs_calibration_gap": 0.2384435043886734,
+        "passes_four_fifths": false,
+        "passes_equal_opportunity": false
+      },
+      {
+        "attribute": "group",
+        "min_air": 0.9808444589085457,
+        "demographic_parity_diff": 0.013447855397252684,
+        "equal_opportunity_diff": 0.015194915956031507,
+        "fpr_diff": 0.0002941157781314041,
+        "max_abs_calibration_gap": 0.009675755652253898,
+        "passes_four_fifths": true,
+        "passes_equal_opportunity": true
+      }
+    ]
+  },
+  "decision_threshold_pd": 0.047621871862130176,
+  "approval_rate": 0.7
+}
