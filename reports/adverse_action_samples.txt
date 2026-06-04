@@ -5,14 +5,14 @@ Application ID: 722703
 Decision: DECLINED  (model PD 11.24% vs cutoff 4.76%)
 
 Principal reasons for adverse action (per ECOA / Regulation B):
-  1. [R02] Debt obligations are too high relative to income
-      (applicant value: 0.0, contribution to risk score: +0.5017)
-  2. [R01] Proportion of revolving balances to credit limits is too high
-      (applicant value: 0.0728, contribution to risk score: +0.2429)
-  3. [R06] Income is insufficient for the amount of credit requested
-      (applicant value: 95000.0, contribution to risk score: +0.2084)
-  4. [R11] Level of recurring monthly obligations
+  1. [R11] Level of recurring monthly obligations
       (applicant value: 1640.0, contribution to risk score: +0.0799)
+  2. [R07] Amount requested is too high relative to income
+      (applicant value: 8100.0, contribution to risk score: +0.0243)
+  3. [R13] Purpose of the requested credit
+      (applicant value: debt_consolidation, contribution to risk score: +0.0062)
+  4. [R12] Residential status or housing obligation
+      (applicant value: own, contribution to risk score: +0.0046)
 
 You have the right to a statement of specific reasons and to dispute the accuracy of information used in this decision.
 ========================================================================
@@ -43,7 +43,7 @@ Principal reasons for adverse action (per ECOA / Regulation B):
       (applicant value: 1630.0, contribution to risk score: +0.3755)
   3. [R09] Number or age of revolving accounts
       (applicant value: 1, contribution to risk score: +0.3553)
-  4. [R15] Insufficient credit file maturity
-      (applicant value: 85.0, contribution to risk score: +0.1075)
+  4. [R07] Amount requested is too high relative to income
+      (applicant value: 0.2773, contribution to risk score: +0.0922)
 
 You have the right to a statement of specific reasons and to dispute the accuracy of information used in this decision.

@@ -116,3 +116,55 @@ def test_group_metrics_columns(df):
     gm = group_metrics(y, p, appr, df["gender"].reset_index(drop=True))
     assert {"approval_rate", "air", "tpr_qualified", "calibration_gap"} <= set(gm.columns)
     assert gm["share"].sum() == pytest.approx(1.0)
+
+
+def test_reason_code_consistency_guard():
+    """A 'too high' reason must be suppressed when the value is below the
+    population median (the DTI=0.0 case), and replaced by the next-ranked
+    consistent contributor."""
+    from creditrisk.explain import filter_consistent_reasons
+
+    contributions = pd.Series({
+        "debt_to_income": 0.50,        # top SHAP, but applicant DTI is 0.0
+        "revolving_utilization": 0.24,
+        "savings_balance": 0.20,
+        "annual_income": 0.15,         # claims 'insufficient', but income is high
+        "inquiries_6m": 0.05,
+        "employment_years": -0.30,     # negative: never a reason
+    })
+    applicant = pd.Series({
+        "debt_to_income": 0.0,
+        "revolving_utilization": 0.91,
+        "savings_balance": 400.0,
+        "annual_income": 95_000.0,
+        "inquiries_6m": 4,
+        "employment_years": 1.5,
+    })
+    medians = pd.Series({
+        "debt_to_income": 0.28,
+        "revolving_utilization": 0.45,
+        "savings_balance": 3_500.0,
+        "annual_income": 39_000.0,
+        "inquiries_6m": 1,
+        "employment_years": 6.0,
+    })
+    picked = filter_consistent_reasons(contributions, applicant, medians, n_reasons=4)
+    assert "debt_to_income" not in picked          # contradicts 'too high'
+    assert "annual_income" not in picked           # contradicts 'insufficient'
+    assert picked[:2] == ["revolving_utilization", "savings_balance"]
+    assert "employment_years" not in picked        # negative contribution
+
+    # without a reference, legacy behavior: pure SHAP ranking
+    legacy = filter_consistent_reasons(contributions, applicant, None, n_reasons=2)
+    assert legacy == ["debt_to_income", "revolving_utilization"]
+
+
+def test_reason_guard_neutral_codes_never_suppressed():
+    """Categorical / neutral-wording codes make no directional claim."""
+    from creditrisk.explain import filter_consistent_reasons
+
+    contributions = pd.Series({"loan_purpose": 0.4, "num_credit_lines": 0.3})
+    applicant = pd.Series({"loan_purpose": "small_business", "num_credit_lines": 2})
+    medians = pd.Series({"num_credit_lines": 5})
+    picked = filter_consistent_reasons(contributions, applicant, medians, n_reasons=4)
+    assert picked == ["loan_purpose", "num_credit_lines"]

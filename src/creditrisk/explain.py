@@ -37,6 +37,53 @@ REASON_CODES: dict[str, tuple[str, str]] = {
     "age": ("R15", "Insufficient credit file maturity"),
 }
 
+# Direction of the claim each reason's language makes about the applicant's
+# value: +1 = "too high / too many", -1 = "insufficient / too low". A reason is
+# only consistent if the value actually sits on that side of the development-
+# population median; otherwise the SHAP contribution is real but the stated
+# rationale would be misleading (e.g. DTI = 0.0 with "debt obligations are too
+# high" — the model flags the anomaly, but that text cannot be the notice).
+# Features absent here (categoricals, neutral wording) make no directional
+# claim and are never suppressed.
+REASON_DIRECTIONS: dict[str, int] = {
+    "revolving_utilization": +1,
+    "debt_to_income": +1,
+    "num_delinq_2y": +1,
+    "inquiries_6m": +1,
+    "loan_to_income": +1,
+    "loan_amount": +1,
+    "monthly_expenses": +1,
+    "geo_risk_index": +1,
+    "annual_income": -1,
+    "credit_history_months": -1,
+    "employment_years": -1,
+    "savings_balance": -1,
+    "age": -1,
+}
+
+
+def filter_consistent_reasons(
+    contributions: pd.Series,
+    applicant_values: pd.Series,
+    reference_medians: pd.Series | None,
+    n_reasons: int = 4,
+) -> list[str]:
+    """Rank features by positive SHAP contribution and keep the top ``n_reasons``
+    whose values are consistent with their reason-code language. With no
+    reference medians, falls back to pure SHAP ranking (legacy behavior)."""
+    ranked = contributions[contributions > 0].sort_values(ascending=False)
+    selected: list[str] = []
+    for feat in ranked.index:
+        direction = REASON_DIRECTIONS.get(feat, 0)
+        if direction and reference_medians is not None and feat in reference_medians.index:
+            value, ref = applicant_values[feat], reference_medians[feat]
+            if (direction > 0 and not value > ref) or (direction < 0 and not value < ref):
+                continue  # contribution is real, but the stated reason would mislead
+        selected.append(feat)
+        if len(selected) == n_reasons:
+            break
+    return selected
+
 
 def _prep(X: pd.DataFrame) -> pd.DataFrame:
     X = X.copy()
@@ -68,20 +115,28 @@ def adverse_action_reasons(
     explainer,
     applicant: pd.DataFrame,
     n_reasons: int = 4,
+    reference_medians: pd.Series | None = None,
 ) -> list[dict]:
-    """Top-N reasons a single applicant's PD was pushed up, as reason codes."""
+    """Top-N reasons a single applicant's PD was pushed up, as reason codes.
+
+    When ``reference_medians`` (development-population medians) is provided,
+    reasons whose language contradicts the applicant's actual value are
+    suppressed and replaced by the next-ranked consistent contributor — the
+    SHAP ranking stays faithful while the stated rationale stays truthful."""
     sv = explainer.shap_values(_prep(applicant))
     if isinstance(sv, list):
         sv = sv[1]
     contrib = pd.Series(sv[0], index=applicant.columns)
-    pushing_up = contrib[contrib > 0].sort_values(ascending=False).head(n_reasons)
+    features = filter_consistent_reasons(
+        contrib, applicant.iloc[0], reference_medians, n_reasons
+    )
     reasons = []
-    for feat, val in pushing_up.items():
+    for feat in features:
         code, text = REASON_CODES.get(feat, ("R99", f"Value of {feat}"))
         reasons.append({
             "feature": feat,
             "applicant_value": applicant.iloc[0][feat],
-            "shap_contribution": float(val),
+            "shap_contribution": float(contrib[feat]),
             "reason_code": code,
             "reason": text,
         })

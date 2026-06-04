@@ -92,6 +92,8 @@ The regulatory requirement, though, is *local*: every declined applicant must re
 4. [R05] Too many recent inquiries for credit                     (4 in 6 months,    +0.48)
 ```
 
+One subtlety surfaced while reviewing generated notices: SHAP can assign a large positive contribution to an *anomalously low* value — one applicant with a debt-to-income of exactly 0.0 drew "[R02] Debt obligations are too high relative to income" as the top reason, because the model treats DTI ≈ 0 as unusual. The contribution was real; the sentence was false. The fix is a **directional consistency guard**: every reason's language makes a claim ("too high", "insufficient"), and a reason is only stated when the applicant's value actually sits on that side of the development-population median — otherwise the next-ranked consistent contributor takes its place. Faithful attribution and truthful language are different requirements, and an adverse-action system needs both.
+
 The same logic runs in a FastAPI service (`POST /score` → PD, points score, decision, reason codes), so the adverse-action path is production-shaped, not a notebook artifact.
 
 ## 5. The fairness audit catches the planted evidence

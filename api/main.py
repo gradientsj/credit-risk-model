@@ -42,6 +42,7 @@ def load_artifacts():
     _state["features"] = bundle["features"]
     _state["threshold"] = bundle["threshold_pd"]
     _state["version"] = bundle["version"]
+    _state["medians"] = bundle.get("feature_medians")  # reason consistency guard
     _state["explainer"] = shap.TreeExplainer(bundle["model"])
 
 
@@ -111,7 +112,8 @@ def score(applicant: Applicant):
     declined = pd_hat > _state["threshold"]
     reasons = None
     if declined:
-        reasons = adverse_action_reasons(_state["explainer"], X)
+        reasons = adverse_action_reasons(
+            _state["explainer"], X, reference_medians=_state["medians"])
         for r in reasons:  # JSON-safe
             r["applicant_value"] = str(r["applicant_value"])
     return ScoreResponse(

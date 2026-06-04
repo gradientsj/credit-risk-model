@@ -185,13 +185,18 @@ def main():
         plt.savefig(C.FIGURES_DIR / f"shap_dependence_{feat}.png", dpi=200, bbox_inches="tight")
         plt.close()
 
-    # sample adverse-action notices for 3 declined applicants
+    # sample adverse-action notices for 3 declined applicants. Development-
+    # population medians anchor the reason-code consistency guard: a "too high"
+    # reason is only stated for a value actually above the median (and vice
+    # versa), so SHAP-real but linguistically-misleading reasons are suppressed.
+    feature_medians = train[feats_mitigated].median(numeric_only=True)
     thr_champ = approval_threshold(preds[champion])
     declined_idx = np.where(preds[champion] > thr_champ)[0][:3]
     notices = []
     for i in declined_idx:
         row = test.iloc[[i]]
-        reasons = adverse_action_reasons(explainer, row[feats_mitigated])
+        reasons = adverse_action_reasons(
+            explainer, row[feats_mitigated], reference_medians=feature_medians)
         notices.append(adverse_action_notice(
             row["application_id"].iloc[0], float(preds[champion][i]), thr_champ, reasons
         ))
@@ -281,7 +286,8 @@ def main():
         "features": feats_mitigated,
         "threshold_pd": float(thr_champ),
         "approval_rate": C.APPROVAL_RATE,
-        "version": "1.0.0",
+        "feature_medians": feature_medians,  # reason-code consistency guard
+        "version": "1.0.1",
     }, C.MODELS_DIR / "champion.joblib")
     joblib.dump(scorecard, C.MODELS_DIR / "incumbent_scorecard.joblib")
     log(f"Artifacts saved to {C.MODELS_DIR}")

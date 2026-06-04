@@ -32,6 +32,7 @@ The champion model is **fit for purpose** for approve/decline rank-ordering at t
 
 ## 6. Explainability & adverse action
 - SHAP additivity verified (contributions sum to the log-odds margin). Reason-code mapping covers all features; the top-4 extraction is deterministic and audit-logged.
+- **Consistency guard**: each reason's language makes a directional claim ("too high" / "insufficient"); a reason is emitted only when the applicant's value sits on that side of the development-population median, otherwise it is suppressed in favor of the next-ranked consistent contributor (`creditrisk.explain.filter_consistent_reasons`, medians shipped in the model artifact). This prevents SHAP-real but linguistically misleading notices — e.g., a zero-DTI applicant being told their debt obligations are too high because the model treats DTI ≈ 0 as anomalous. Validated against that exact case in the unit tests.
 - Sample notices (`reports/adverse_action_samples.txt`) reviewed for Reg B compliance-style language.
 
 ## 7. Conditions, limitations, and findings
@@ -40,7 +41,7 @@ The champion model is **fit for purpose** for approve/decline rank-ordering at t
 | 1 | High | Development data is simulated | Validate on production or public real data (Home Credit companion pipeline) before any production use |
 | 2 | Medium | Income measurement bias persists post-mitigation | Data-quality remediation plan; monitor segment-level calibration quarterly |
 | 3 | Medium | PD calibration assumes stable macro conditions | Recalibration trigger in monitoring plan (PSI > 0.25 or default-rate drift > 20% relative) |
-| 4 | Low | Reason-code granularity for correlated features | Periodic review of reason-code frequency distribution |
+| 4 | Low | Reason-code granularity for correlated features | **Partially remediated**: directional consistency guard added (v1.0.1) suppresses linguistically contradictory reasons; periodic review of reason-code frequency distribution continues |
 
 ## 8. Validation outcome
 **Approved with conditions** (findings 1–4 tracked to closure by Model Risk Management). Next full revalidation: 12 months from deployment or upon any monitoring trigger.
