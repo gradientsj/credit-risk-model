@@ -2,6 +2,8 @@
 
 End-to-end credit risk modeling project: an 800K-application probability-of-default model with SHAP explainability, fair-lending testing against ground-truth injected bias, dollar-quantified business impact, model governance documentation, and a scoring API that returns ECOA-style adverse-action reason codes.
 
+> 📰 **[Read the full write-up](ARTICLE.md)** — a long-form case study with every figure and result in context, from simulator design through the fairness audit to the twelve-model benchmark.
+
 ## Headline results (simulated 800K portfolio, held-out test)
 
 | | Incumbent scorecard | Naive challenger | **Champion (mitigated)** |
